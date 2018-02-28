@@ -2,15 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0ce8f299-a467-4a28-9d5c-946f24c0c5f2" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/avroConsumer.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/avroConsumer_test.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/avroProducer.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/avroProducer_test.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/cachedSchemaRegistry.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/cachedSchemaRegistry_test.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/errors.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/schemaRegistry.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/schemaRegistry_test.go" />
+      <change beforePath="" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -107,11 +100,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="avroProducer_test.go" pinned="false" current-in-tab="true">
+      <file leaf-file-name="avroProducer_test.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/avroProducer_test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="285">
-              <caret line="19" column="0" lean-forward="true" selection-start-line="19" selection-start-column="0" selection-end-line="19" selection-end-column="0" />
+            <state relative-caret-position="165">
+              <caret line="11" column="25" lean-forward="true" selection-start-line="11" selection-start-column="25" selection-end-line="11" selection-end-column="25" />
               <folding>
                 <element signature="e#15#71#0" expanded="true" />
               </folding>
@@ -119,11 +112,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="sync_producer.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../../Shopify/sarama/mocks/sync_producer.go">
+      <file leaf-file-name=".gitignore" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/.gitignore">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="252">
-              <caret line="23" column="5" lean-forward="false" selection-start-line="23" selection-start-column="5" selection-end-line="23" selection-end-column="5" />
+            <state relative-caret-position="15">
+              <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -154,6 +147,7 @@
         <option value="$PROJECT_DIR$/schemaRegistry_test.go" />
         <option value="$PROJECT_DIR$/avroProducer.go" />
         <option value="$PROJECT_DIR$/avroProducer_test.go" />
+        <option value="$PROJECT_DIR$/.gitignore" />
       </list>
     </option>
   </component>
@@ -458,11 +452,19 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/avroProducer_test.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="19" column="0" lean-forward="true" selection-start-line="19" selection-start-column="0" selection-end-line="19" selection-end-column="0" />
+        <state relative-caret-position="165">
+          <caret line="11" column="25" lean-forward="true" selection-start-line="11" selection-start-column="25" selection-end-line="11" selection-end-column="25" />
           <folding>
             <element signature="e#15#71#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
