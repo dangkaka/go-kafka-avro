@@ -24,14 +24,7 @@ func createSchemaRegistryTestObject(t *testing.T, subject string, id int) *TestO
 	testObject.Subject = subject
 	testObject.Id = id
 	testObject.Count = 0
-	codec, err := goavro.NewCodec(`
-        {
-          "type": "record",
-          "name": "test",
-          "fields" : [
-            {"name": "val", "type": "int", "default": 0}
-          ]
-        }`)
+	codec, err := goavro.NewCodec(`{"type": "record", "name": "test", "fields" : [{"name": "val", "type": "int", "default": 0}]}`)
 	if err != nil {
 		t.Errorf("Could not create codec %v", err)
 	}
