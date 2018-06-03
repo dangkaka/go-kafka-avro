@@ -88,14 +88,14 @@ func TestCachedSchemaRegistryClient_CreateSubject(t *testing.T) {
 		t.Errorf("Error getting schema: %s", err.Error())
 	}
 	if id != testObject.Id {
-		t.Errorf("Ids do not match. Expected: 1, got: %s", id)
+		t.Errorf("Ids do not match. Expected: 1, got: %d", id)
 	}
 	sameid, err := client.CreateSubject(testObject.Subject, testObject.Codec)
 	if nil != err {
 		t.Errorf("Error getting schema: %s", err.Error())
 	}
 	if sameid != id {
-		t.Errorf("Ids do not match. Expected: %s, got: %s", id, sameid)
+		t.Errorf("Ids do not match. Expected: %d, got: %d", id, sameid)
 	}
 	if testObject.Count > 1 {
 		t.Errorf("Expected call count of 1, got %d", testObject.Count)
@@ -115,7 +115,7 @@ func TestCachedSchemaRegistryClient_IsSchemaRegistered(t *testing.T) {
 		t.Errorf("Error getting schema: %s", err.Error())
 	}
 	if id != testObject.Id {
-		t.Errorf("Ids do not match. Expected: 1, got: %s", id)
+		t.Errorf("Ids do not match. Expected: 1, got: %d", id)
 	}
 }
 
