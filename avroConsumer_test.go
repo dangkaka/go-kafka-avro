@@ -3,7 +3,7 @@ package kafka
 import (
 	"encoding/binary"
 	"github.com/Shopify/sarama"
-	"github.com/linkedin/goavro"
+	"github.com/linkedin/goavro/v2"
 	"testing"
 )
 
