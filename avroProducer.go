@@ -80,7 +80,8 @@ type AvroEncoder struct {
 	Content  []byte
 }
 
-// 此处无数坑，因为Confluent schema registry正对Avro序列化规则有特殊要求，不光需要序列化具体的内容，还要附加上Schema ID以及Magic Byte
+// Notice: the Confluent schema registry has special requirements for the Avro serialization rules,
+// not only need to serialize the specific content, but also attach the Schema ID and Magic Byte.
 // Ref: https://docs.confluent.io/current/schema-registry/serializer-formatter.html#wire-format
 func (a *AvroEncoder) Encode() ([]byte, error) {
 	var binaryMsg []byte
