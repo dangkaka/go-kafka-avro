@@ -27,7 +27,7 @@ $ go get github.com/dangkaka/go-kafka-avro
     
 * Run consumer
     ```
-    go run consumer.main.go
+    go run consumer/main.go
     ```
     
 ### References
