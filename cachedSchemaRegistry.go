@@ -100,5 +100,5 @@ func (client *CachedSchemaRegistryClient) DeleteVersion(subject string, version 
 
 // SetAuthHeader sets the authentication header for the SchemaRegistryClient
 func (client *CachedSchemaRegistryClient) SetAuthHeader(authHeader fmt.Stringer) error {
-	return client.SetAuthHeader(authHeader)
+	return client.SchemaRegistryClient.SetAuthHeader(authHeader)
 }
