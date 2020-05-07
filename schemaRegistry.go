@@ -190,7 +190,7 @@ func (client *SchemaRegistryClient) DeleteVersion(subject string, version int) e
 	return err
 }
 
-// BasicAuth sets username and password for HTTP client
+// BasicAuth sets username and password for the SchemaRegistryClient
 func BasicAuth(username, password string) SchemaRegistryClientParam {
 	return func(c *SchemaRegistryClient) error {
 		c.auth = &basicAuth{username: username, password: password}
