@@ -25,6 +25,7 @@ type SchemaRegistryClientInterface interface {
 	IsSchemaRegistered(string, *goavro.Codec) (int, error)
 	DeleteSubject(string) error
 	DeleteVersion(string, int) error
+	SetAuthHeader(fmt.Stringer) error
 }
 
 // SchemaRegistryClient is a basic http client to interact with schema registry
@@ -32,11 +33,11 @@ type SchemaRegistryClient struct {
 	SchemaRegistryConnect []string
 	httpClient            *http.Client
 	retries               int
-	auth                  fmt.Stringer
+	authHeader            fmt.Stringer
 }
 
 // SchemaRegistryClientParam is a functional decorator for setting client parameters
-type SchemaRegistryClientParam func(c *SchemaRegistryClient) error
+type SchemaRegistryClientParam func(c SchemaRegistryClientInterface) error
 
 type schemaResponse struct {
 	Schema string `json:"schema"`
@@ -190,11 +191,17 @@ func (client *SchemaRegistryClient) DeleteVersion(subject string, version int) e
 	return err
 }
 
+// SetAuthHeader sets the authentication header for the SchemaRegistryClient
+func (client *SchemaRegistryClient) SetAuthHeader(authHeader fmt.Stringer) error {
+	client.authHeader = authHeader
+	return nil
+}
+
 // BasicAuth sets username and password for the SchemaRegistryClient
 func BasicAuth(username, password string) SchemaRegistryClientParam {
-	return func(c *SchemaRegistryClient) error {
-		c.auth = &basicAuth{username: username, password: password}
-		return nil
+	return func(c SchemaRegistryClientInterface) error {
+		err := c.SetAuthHeader(&basicAuth{username: username, password: password})
+		return err
 	}
 }
 
@@ -211,8 +218,8 @@ func parseID(str []byte) (int, error) {
 }
 
 func (client *SchemaRegistryClient) addAuth(r *http.Request) {
-	if client.auth != nil {
-		r.Header.Set("Authorization", client.auth.String())
+	if client.authHeader != nil {
+		r.Header.Set("Authorization", client.authHeader.String())
 	}
 }
 
