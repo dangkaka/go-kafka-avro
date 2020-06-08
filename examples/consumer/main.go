@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/dangkaka/go-kafka-avro"
 	"github.com/bsm/sarama-cluster"
+	"github.com/dangkaka/go-kafka-avro"
 )
 
 var kafkaServers = []string{"localhost:9092"}

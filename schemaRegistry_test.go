@@ -3,12 +3,13 @@ package kafka
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/linkedin/goavro/v2"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/linkedin/goavro/v2"
 )
 
 type TestObject struct {
@@ -19,7 +20,8 @@ type TestObject struct {
 	Count      int
 }
 
-func createSchemaRegistryTestObject(t *testing.T, subject string, id int) *TestObject {
+func createSchemaRegistryTestObject(t *testing.T, topic string, id int) *TestObject {
+	subject := topic + "-value"
 	testObject := &TestObject{}
 	testObject.Subject = subject
 	testObject.Id = id
