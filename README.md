@@ -11,9 +11,11 @@ $ go get github.com/dangkaka/go-kafka-avro
 ```
 
 ### Usage
+Consumer/producer examples stay [here](./examples)
 
-[Examples](./examples)
-
+```
+cd dangkaka/go-kafka-avro/examples
+```
 
 * Setup kafka, schema-registry
     ```
