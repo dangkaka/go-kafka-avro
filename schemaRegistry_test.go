@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -34,9 +35,13 @@ func createSchemaRegistryTestObject(t *testing.T, topic string, id int) *TestObj
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		testObject.Count++
+
+		var postVersion = regexp.MustCompile(`^/subjects/.+/versions$`)
+		var postSubject = regexp.MustCompile(`^/subjects/[^/]+$`)
+
 		if r.Method == "POST" {
-			switch r.URL.String() {
-			case fmt.Sprintf(subjectVersions, subject), fmt.Sprintf(deleteSubject, subject):
+			switch {
+			case postVersion.MatchString(r.URL.String()), postSubject.MatchString(r.URL.String()):
 				response := idResponse{id}
 				str, _ := json.Marshal(response)
 				fmt.Fprintf(w, string(str))
