@@ -128,3 +128,49 @@ func TestSchemaRegistryClient_Error(t *testing.T) {
 		t.Errorf("Expected error to be %s, got %s", expectedErr.Error(), err.Error())
 	}
 }
+
+var flagtests = []struct {
+	basicAuth *basicAuth
+}{
+	{&basicAuth{"test", "password"}},
+	{nil},
+}
+
+func TestSchemaRegistryClient_BasicAuth(t *testing.T) {
+
+	response := []string{"test"}
+
+	for _, tt := range flagtests {
+		t.Logf("%v", tt.basicAuth)
+		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if tt.basicAuth != nil {
+				if r.Header.Get("Authorization") != tt.basicAuth.String() {
+					t.Errorf("No Authorization header found, expected: %s", tt.basicAuth)
+				}
+			} else {
+				if r.Header.Get("Authorization") != "" {
+					t.Error("Authorization header found, expected None")
+				}
+			}
+
+			w.Header().Set("Content-Type", contentType)
+			str, _ := json.Marshal(response)
+			fmt.Fprintf(w, string(str))
+		}))
+
+		SchemaRegistryClient := NewSchemaRegistryClient([]string{mockServer.URL})
+		if tt.basicAuth != nil {
+			err := BasicAuth(tt.basicAuth.username, tt.basicAuth.password)(SchemaRegistryClient)
+			if err != nil {
+				t.Errorf("Found error %s", err)
+			}
+		}
+		subjects, err := SchemaRegistryClient.GetSubjects()
+		if err != nil {
+			t.Errorf("Found error %s", err)
+		}
+		if !reflect.DeepEqual(subjects, response) {
+			t.Errorf("Subjects did not match expected %s, got %s", response, subjects)
+		}
+	}
+}

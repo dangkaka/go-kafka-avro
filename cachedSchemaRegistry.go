@@ -1,8 +1,10 @@
 package kafka
 
 import (
-	"github.com/linkedin/goavro/v2"
+	"fmt"
 	"sync"
+
+	"github.com/linkedin/goavro/v2"
 )
 
 // CachedSchemaRegistryClient is a schema registry client that will cache some data to improve performance
@@ -94,4 +96,9 @@ func (client *CachedSchemaRegistryClient) DeleteSubject(subject string) error {
 // DeleteVersion deletes the a specific version of a subject, should only be used in development.
 func (client *CachedSchemaRegistryClient) DeleteVersion(subject string, version int) error {
 	return client.SchemaRegistryClient.DeleteVersion(subject, version)
+}
+
+// SetAuthHeader sets the authentication header for the SchemaRegistryClient
+func (client *CachedSchemaRegistryClient) SetAuthHeader(authHeader fmt.Stringer) error {
+	return client.SchemaRegistryClient.SetAuthHeader(authHeader)
 }

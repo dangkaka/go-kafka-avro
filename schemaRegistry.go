@@ -2,14 +2,16 @@ package kafka
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/linkedin/goavro/v2"
 	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/linkedin/goavro/v2"
 )
 
 // SchemaRegistryClientInterface defines the api for all clients interfacing with schema registry
@@ -23,6 +25,7 @@ type SchemaRegistryClientInterface interface {
 	IsSchemaRegistered(string, *goavro.Codec) (int, error)
 	DeleteSubject(string) error
 	DeleteVersion(string, int) error
+	SetAuthHeader(fmt.Stringer) error
 }
 
 // SchemaRegistryClient is a basic http client to interact with schema registry
@@ -30,7 +33,11 @@ type SchemaRegistryClient struct {
 	SchemaRegistryConnect []string
 	httpClient            *http.Client
 	retries               int
+	authHeader            fmt.Stringer
 }
+
+// SchemaRegistryClientParam is a functional decorator for setting client parameters
+type SchemaRegistryClientParam func(c SchemaRegistryClientInterface) error
 
 type schemaResponse struct {
 	Schema string `json:"schema"`
@@ -45,6 +52,11 @@ type schemaVersionResponse struct {
 
 type idResponse struct {
 	ID int `json:"id"`
+}
+
+type basicAuth struct {
+	username string
+	password string
 }
 
 const (
@@ -67,7 +79,7 @@ func NewSchemaRegistryClient(connect []string) *SchemaRegistryClient {
 	client := &http.Client{
 		Timeout: timeout,
 	}
-	return &SchemaRegistryClient{connect, client, len(connect)}
+	return &SchemaRegistryClient{connect, client, len(connect), nil}
 }
 
 // NewSchemaRegistryClientWithRetries creates an http client with a configurable amount of retries on 5XX responses
@@ -75,7 +87,7 @@ func NewSchemaRegistryClientWithRetries(connect []string, retries int) *SchemaRe
 	client := &http.Client{
 		Timeout: timeout,
 	}
-	return &SchemaRegistryClient{connect, client, retries}
+	return &SchemaRegistryClient{connect, client, retries, nil}
 }
 
 // GetSchema returns a goavro.Codec by unique id
@@ -179,6 +191,20 @@ func (client *SchemaRegistryClient) DeleteVersion(subject string, version int) e
 	return err
 }
 
+// SetAuthHeader sets the authentication header for the SchemaRegistryClient
+func (client *SchemaRegistryClient) SetAuthHeader(authHeader fmt.Stringer) error {
+	client.authHeader = authHeader
+	return nil
+}
+
+// BasicAuth sets username and password for the SchemaRegistryClient
+func BasicAuth(username, password string) SchemaRegistryClientParam {
+	return func(c SchemaRegistryClientInterface) error {
+		err := c.SetAuthHeader(&basicAuth{username: username, password: password})
+		return err
+	}
+}
+
 func parseSchema(str []byte) (*schemaResponse, error) {
 	var schema = new(schemaResponse)
 	err := json.Unmarshal(str, &schema)
@@ -191,6 +217,12 @@ func parseID(str []byte) (int, error) {
 	return id.ID, err
 }
 
+func (client *SchemaRegistryClient) addAuth(r *http.Request) {
+	if client.authHeader != nil {
+		r.Header.Set("Authorization", client.authHeader.String())
+	}
+}
+
 func (client *SchemaRegistryClient) httpCall(method, uri string, payload io.Reader) ([]byte, error) {
 	nServers := len(client.SchemaRegistryConnect)
 	offset := rand.Intn(nServers)
@@ -201,6 +233,7 @@ func (client *SchemaRegistryClient) httpCall(method, uri string, payload io.Read
 			return nil, err
 		}
 		req.Header.Set("Content-Type", contentType)
+		client.addAuth(req)
 		resp, err := client.httpClient.Do(req)
 		if resp != nil {
 			defer resp.Body.Close()
@@ -224,4 +257,9 @@ func retriable(resp *http.Response) bool {
 
 func okStatus(resp *http.Response) bool {
 	return resp.StatusCode >= 200 && resp.StatusCode < 400
+}
+
+func (b *basicAuth) String() string {
+	auth := b.username + ":" + b.password
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
 }
