@@ -10,7 +10,29 @@ import (
 	"testing"
 
 	"github.com/linkedin/goavro/v2"
+	"github.com/riferrei/srclient"
 )
+
+const (
+	schemaByID       = "/schemas/ids/%d"
+	subjects         = "/subjects"
+	contentType      = "application/vnd.schemaregistry.v1+json"
+	subjectVersions  = "/subjects/%s/versions"
+	deleteSubject    = "/subjects/%s"
+	subjectByVersion = "/subjects/%s/versions/%s"
+	latestVersion    = "latest"
+)
+
+type idResponse struct {
+	ID int `json:"id"`
+}
+
+type schemaVersionResponse struct {
+	Subject string `json:"subject"`
+	Version int    `json:"version"`
+	Schema  string `json:"schema"`
+	ID      int    `json:"id"`
+}
 
 type TestObject struct {
 	MockServer *httptest.Server
@@ -103,7 +125,7 @@ func TestSchemaRegistryClient_Retries(t *testing.T) {
 			fmt.Fprintf(w, string(str))
 		}
 	}))
-	SchemaRegistryClient := NewSchemaRegistryClientWithRetries([]string{mockServer.URL}, 2)
+	SchemaRegistryClient := srclient.CreateSchemaRegistryClient(mockServer.URL)
 	subjects, err := SchemaRegistryClient.GetSubjects()
 	if err != nil {
 		t.Errorf("Found error %s", err)
@@ -121,7 +143,7 @@ func TestSchemaRegistryClient_Error(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error_code": 500, "message": "Error in the backend datastore"}`, 500)
 	}))
-	SchemaRegistryClient := NewSchemaRegistryClient([]string{mockServer.URL})
+	SchemaRegistryClient := srclient.CreateSchemaRegistryClient(mockServer.URL)
 	_, err := SchemaRegistryClient.GetSubjects()
 	expectedErr := Error{500, "Error in the backend datastore"}
 	if err.Error() != expectedErr.Error() {

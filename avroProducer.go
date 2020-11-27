@@ -2,18 +2,23 @@ package kafka
 
 import (
 	"encoding/binary"
+	"fmt"
+	"log"
+	"strings"
+	"time"
+
 	"github.com/Shopify/sarama"
 	"github.com/linkedin/goavro/v2"
-	"time"
+	"github.com/riferrei/srclient"
+	"github.com/toventang/eklog/scram"
 )
 
 type AvroProducer struct {
 	producer             sarama.SyncProducer
-	schemaRegistryClient *CachedSchemaRegistryClient
+	schemaRegistryClient *srclient.SchemaRegistryClient
 }
 
-// NewAvroProducer is a basic producer to interact with schema registry, avro and kafka
-func NewAvroProducer(kafkaServers []string, schemaRegistryServers []string) (*AvroProducer, error) {
+func defaultAvroProducerConfig() *sarama.Config {
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_0_1_0
 	config.Producer.Partitioner = sarama.NewHashPartitioner
@@ -23,56 +28,90 @@ func NewAvroProducer(kafkaServers []string, schemaRegistryServers []string) (*Av
 	config.Producer.MaxMessageBytes = 10000000
 	config.Producer.Retry.Max = 10
 	config.Producer.Retry.Backoff = 1000 * time.Millisecond
+	return config
+}
+
+// NewAvroProducerWithSASL uses the SASL config of the given sarama.Config object to connect to the kafka cluster, see examples
+func NewAvroProducerWithSASL(kafkaServers []string, schemaRegistryServer string, saslConfig *sarama.Config) (*AvroProducer, error) {
+	config := defaultAvroProducerConfig()
+	config.Net.SASL = saslConfig.Net.SASL
 	producer, err := sarama.NewSyncProducer(kafkaServers, config)
 	if err != nil {
 		return nil, err
 	}
-	schemaRegistryClient := NewCachedSchemaRegistryClient(schemaRegistryServers)
+
+	schemaRegistryClient := srclient.CreateSchemaRegistryClient(schemaRegistryServer)
+	schemaRegistryClient.CachingEnabled(true)
+	schemaRegistryClient.CodecCreationEnabled(true)
 	return &AvroProducer{producer, schemaRegistryClient}, nil
 }
 
-//GetSchemaId get schema id from schema-registry service
-func (ap *AvroProducer) GetSchemaId(topic string, avroCodec *goavro.Codec) (int, error) {
-	schemaId, err := ap.schemaRegistryClient.CreateSubject(topic+"-value", avroCodec)
-	if err != nil {
-		return 0, err
-	}
-	return schemaId, nil
+// NewAvroProducer is a basic producer to interact with schema registry, avro and kafka
+func NewAvroProducer(kafkaServers []string, schemaRegistryServer string) (*AvroProducer, error) {
+	return NewAvroProducerWithSASL(kafkaServers, schemaRegistryServer, sarama.NewConfig())
 }
 
-func (ap *AvroProducer) Add(topic string, schema string, key []byte, value []byte) error {
-	avroCodec, err := goavro.NewCodec(schema)
-	if err != nil {
-		return err
-	}
-	schemaId, err := ap.GetSchemaId(topic, avroCodec)
-	if err != nil {
-		return err
+// GetSchemaID return the value SchemaID for the given topic
+// Will attempt to create a new subject if a schema is provided and subject doesn't exist
+func (ap *AvroProducer) GetSchemaID(topic, schema string) (int, error) {
+	srclientSchema, err := ap.schemaRegistryClient.GetLatestSchema(topic, false)
+	if err == nil {
+		id := srclientSchema.ID()
+		return id, nil
 	}
 
-	native, _, err := avroCodec.NativeFromTextual(value)
-	if err != nil {
-		return err
+	notFoundText := fmt.Sprintf("Subject '%s-value' not found", topic)
+	if !strings.Contains(err.Error(), notFoundText) || schema == "" {
+		return -1, err
 	}
-	// Convert native Go form to binary Avro data
-	binaryValue, err := avroCodec.BinaryFromNative(nil, native)
+
+	srclientSchema, err = ap.schemaRegistryClient.CreateSchema(topic, schema, srclient.Avro, false)
+	id := srclientSchema.ID()
+	return id, err
+}
+
+// PrepareMessage for submission to Kafka
+// sarama.StringEncoder is used for key
+func (ap *AvroProducer) PrepareMessage(codec *goavro.Codec, topic string, schemaID int, key, value []byte) (*sarama.ProducerMessage, error) {
+	native, _, err := codec.NativeFromTextual(value)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	binaryValue, err := codec.BinaryFromNative(nil, native)
+	if err != nil {
+		return nil, err
 	}
 
 	binaryMsg := &AvroEncoder{
-		SchemaID: schemaId,
+		SchemaID: schemaID,
 		Content:  binaryValue,
 	}
+
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Key:   sarama.StringEncoder(key),
 		Value: binaryMsg,
 	}
-	_, _, err = ap.producer.SendMessage(msg)
-	return err
+	return msg, nil
 }
 
+// SendMessages calls the sarama producer's SendMessages method
+func (ap *AvroProducer) SendMessages(msgs []*sarama.ProducerMessage) error {
+	return ap.producer.SendMessages(msgs)
+}
+
+// Add is a utility method that calls PrepareMessage and sends it right away, not recommended for performance
+func (ap *AvroProducer) Add(codec *goavro.Codec, topic string, schemaID int, key, value []byte) error {
+	msg, err := ap.PrepareMessage(codec, topic, schemaID, key, value)
+	if err != nil {
+		return err
+	}
+
+	return ap.SendMessages([]*sarama.ProducerMessage{msg})
+}
+
+// Close calls the sarama producer's Close method
 func (ac *AvroProducer) Close() {
 	ac.producer.Close()
 }
@@ -102,4 +141,34 @@ func (a *AvroEncoder) Encode() ([]byte, error) {
 // Length of schemaId and Content.
 func (a *AvroEncoder) Length() int {
 	return 5 + len(a.Content)
+}
+
+func ExampleNewAvroProducerWithSASL_Plain() {
+	mySASLConfig := sarama.NewConfig()
+	mySASLConfig.Net.SASL.Enable = true
+	mySASLConfig.Net.SASL.Handshake = true
+	mySASLConfig.Net.SASL.User = "username"
+	mySASLConfig.Net.SASL.Password = "password"
+
+	_, err := NewAvroProducerWithSASL([]string{"0.0.0.0:9092"}, "http://0.0.0.0:8081", mySASLConfig)
+	if err == nil {
+		log.Println(err.Error())
+	} else {
+		log.Println("success")
+	}
+	// Output: success
+}
+
+func ExampleNewAvroProducerWithSASL_SCRAMSHA256() {
+	mySASLConfig := sarama.NewConfig()
+	mySASLConfig.Net.SASL.Enable = true
+	mySASLConfig.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
+	mySASLConfig.Net.SASL.User = "username"
+	mySASLConfig.Net.SASL.Password = "password"
+	// Use github.com/toventang/eklog/scram for a standardized approach
+	mySASLConfig.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &scram.XDGSCRAMClient{HashGeneratorFcn: scram.SHA256} }
+	mySASLConfig.Net.SASL.Mechanism = sarama.SASLMechanism(sarama.SASLTypeSCRAMSHA256)
+
+	producer, err := NewAvroProducerWithSASL([]string{"0.0.0.0:9092"}, "http://0.0.0.0:8081", mySASLConfig)
+	_, _ = producer, err //
 }
