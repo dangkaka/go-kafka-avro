@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/bsm/sarama-cluster"
+
+	cluster "github.com/bsm/sarama-cluster"
 	"github.com/dangkaka/go-kafka-avro"
 )
 
@@ -23,7 +24,7 @@ func main() {
 		},
 	}
 
-	consumer, err := kafka.NewAvroConsumer(kafkaServers, schemaRegistryServers, topic, "consumer-group", consumerCallbacks)
+	consumer, err := kafka.NewAvroConsumer(kafkaServers, schemaRegistryServers[0], topic, "consumer-group", consumerCallbacks)
 	if err != nil {
 		fmt.Println(err)
 	}

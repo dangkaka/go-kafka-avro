@@ -2,13 +2,16 @@ package kafka
 
 import (
 	"testing"
+
+	"github.com/riferrei/srclient"
 )
 
 func TestCachedSchemaRegistryClient_GetSchema(t *testing.T) {
 	testObject := createSchemaRegistryTestObject(t, "test", 1)
 	mockServer := testObject.MockServer
 	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
+	client := srclient.CreateSchemaRegistryClient(mockServer.URL)
+	client.CachingEnabled(true)
 	client.GetSchema(1)
 	responseCodec, err := client.GetSchema(1)
 	if nil != err {
@@ -26,7 +29,7 @@ func TestCachedSchemaRegistryClient_GetSubjects(t *testing.T) {
 	testObject := createSchemaRegistryTestObject(t, "test", 1)
 	mockServer := testObject.MockServer
 	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
+	client := srclient.CreateSchemaRegistryClient(mockServer.URL)
 	subjects, err := client.GetSubjects()
 	if nil != err {
 		t.Errorf("Error getting subjects: %v", err)
@@ -40,8 +43,8 @@ func TestCachedSchemaRegistryClient_GetVersions(t *testing.T) {
 	testObject := createSchemaRegistryTestObject(t, "test", 1)
 	mockServer := testObject.MockServer
 	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
-	versions, err := client.GetVersions(testObject.Subject)
+	client := srclient.CreateSchemaRegistryClient(mockServer.URL)
+	versions, err := client.GetSchemaVersions("test", false)
 	if nil != err {
 		t.Errorf("Error getting versions: %v", err)
 	}
@@ -54,8 +57,8 @@ func TestCachedSchemaRegistryClient_GetSchemaByVersion(t *testing.T) {
 	testObject := createSchemaRegistryTestObject(t, "test", 1)
 	mockServer := testObject.MockServer
 	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
-	responseCodec, err := client.GetSchemaByVersion(testObject.Subject, 1)
+	client := srclient.CreateSchemaRegistryClient(mockServer.URL)
+	responseCodec, err := client.GetSchemaByVersion("test", 1, false)
 	if nil != err {
 		t.Errorf("Error getting schema versions: %v", err)
 	}
@@ -68,8 +71,8 @@ func TestCachedSchemaRegistryClient_GetLatestSchema(t *testing.T) {
 	testObject := createSchemaRegistryTestObject(t, "test", 1)
 	mockServer := testObject.MockServer
 	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
-	responseCodec, err := client.GetLatestSchema(testObject.Subject)
+	client := srclient.CreateSchemaRegistryClient(mockServer.URL)
+	responseCodec, err := client.GetLatestSchema("test", false)
 	if nil != err {
 		t.Errorf("Error getting latest schema: %v", err)
 	}
@@ -82,15 +85,22 @@ func TestCachedSchemaRegistryClient_CreateSubject(t *testing.T) {
 	testObject := createSchemaRegistryTestObject(t, "test", 1)
 	mockServer := testObject.MockServer
 	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
-	id, err := client.CreateSubject(testObject.Subject, testObject.Codec)
+	client := srclient.CreateSchemaRegistryClient(mockServer.URL)
+
+	created, err := client.CreateSchema("test", testObject.Codec.Schema(), srclient.Avro, false)
 	if nil != err {
-		t.Errorf("Error getting schema: %s", err.Error())
+		t.Errorf("Error creating schema: %s", err.Error())
 	}
+
+	id := created.ID()
+
 	if id != testObject.Id {
 		t.Errorf("Ids do not match. Expected: 1, got: %d", id)
 	}
-	sameid, err := client.CreateSubject(testObject.Subject, testObject.Codec)
+
+	sameSchema, err := client.GetLatestSchema("test", false)
+
+	sameid := sameSchema.ID()
 	if nil != err {
 		t.Errorf("Error getting schema: %s", err.Error())
 	}
@@ -102,41 +112,44 @@ func TestCachedSchemaRegistryClient_CreateSubject(t *testing.T) {
 	}
 }
 
-func TestCachedSchemaRegistryClient_IsSchemaRegistered(t *testing.T) {
-	testObject := createSchemaRegistryTestObject(t, "test", 1)
-	mockServer := testObject.MockServer
-	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
-	id, err := client.IsSchemaRegistered(testObject.Subject, testObject.Codec)
-	if nil != err {
-		t.Errorf("Error getting schema id: %v", err)
-	}
-	if nil != err {
-		t.Errorf("Error getting schema: %s", err.Error())
-	}
-	if id != testObject.Id {
-		t.Errorf("Ids do not match. Expected: 1, got: %d", id)
-	}
-}
+// IsSchemaRegistered doesn't need to be implemented as GetLatestSchema can be used instead
+// func TestCachedSchemaRegistryClient_IsSchemaRegistered(t *testing.T) {
+// 	testObject := createSchemaRegistryTestObject(t, "test", 1)
+// 	mockServer := testObject.MockServer
+// 	defer mockServer.Close()
+// 	client := srclient.CreateSchemaRegistryClient(mockServer.URL)
+// 	id, err := client.IsSchemaRegistered(testObject.Subject, testObject.Codec)
+// 	if nil != err {
+// 		t.Errorf("Error getting schema id: %v", err)
+// 	}
+// 	if nil != err {
+// 		t.Errorf("Error getting schema: %s", err.Error())
+// 	}
+// 	if id != testObject.Id {
+// 		t.Errorf("Ids do not match. Expected: 1, got: %d", id)
+// 	}
+// }
 
-func TestCachedSchemaRegistryClient_DeleteSubject(t *testing.T) {
-	testObject := createSchemaRegistryTestObject(t, "test", 1)
-	mockServer := testObject.MockServer
-	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
-	err := client.DeleteSubject(testObject.Subject)
-	if nil != err {
-		t.Errorf("Error delete subject: %v", err)
-	}
-}
+// DeleteSubject is not implemented in srclient yet, currently pending review
+// func TestCachedSchemaRegistryClient_DeleteSubject(t *testing.T) {
+// 	testObject := createSchemaRegistryTestObject(t, "test", 1)
+// 	mockServer := testObject.MockServer
+// 	defer mockServer.Close()
+// 	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
+// 	err := client.DeleteSubject(testObject.Subject)
+// 	if nil != err {
+// 		t.Errorf("Error delete subject: %v", err)
+// 	}
+// }
 
-func TestCachedSchemaRegistryClient_DeleteVersion(t *testing.T) {
-	testObject := createSchemaRegistryTestObject(t, "test", 1)
-	mockServer := testObject.MockServer
-	defer mockServer.Close()
-	client := NewCachedSchemaRegistryClient([]string{mockServer.URL})
-	err := client.DeleteVersion(testObject.Subject, 1)
-	if nil != err {
-		t.Errorf("Error delete version: %v", err)
-	}
-}
+// DeleteVersion is not implemented in srclient yet
+// func TestCachedSchemaRegistryClient_DeleteVersion(t *testing.T) {
+// 	testObject := createSchemaRegistryTestObject(t, "test", 1)
+// 	mockServer := testObject.MockServer
+// 	defer mockServer.Close()
+// 	client := srclient.CreateSchemaRegistryClient(mockServer.URL)
+// 	err := client.DeleteSubject(testObject.Subject, true)
+// 	if nil != err {
+// 		t.Errorf("Error delete version: %v", err)
+// 	}
+// }

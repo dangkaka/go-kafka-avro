@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dangkaka/go-kafka-avro"
 	"time"
+
+	"github.com/dangkaka/go-kafka-avro"
+	"github.com/linkedin/goavro/v2"
 )
 
 var kafkaServers = []string{"localhost:9092"}
@@ -22,7 +24,7 @@ func main() {
 					{"name": "Data", "type": "string"}
 				]
 			}`
-	producer, err := kafka.NewAvroProducer(kafkaServers, schemaRegistryServers)
+	producer, err := kafka.NewAvroProducer(kafkaServers, schemaRegistryServers[0])
 	if err != nil {
 		fmt.Printf("Could not create avro producer: %s", err)
 	}
@@ -41,7 +43,12 @@ func addMsg(producer *kafka.AvroProducer, schema string) {
 		"Data": "example_data"
 	}`
 	key := time.Now().String()
-	err := producer.Add(topic, schema, []byte(key), []byte(value))
+	codec, err := goavro.NewCodec(schema)
+	if err != nil {
+		fmt.Printf("Could not create avro codec: %s", err)
+		return
+	}
+	err = producer.Add(codec, topic, 1, []byte(key), []byte(value))
 	fmt.Println(key)
 	if err != nil {
 		fmt.Printf("Could not add a msg: %s", err)

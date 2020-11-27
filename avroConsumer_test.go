@@ -2,9 +2,11 @@ package kafka
 
 import (
 	"encoding/binary"
+	"testing"
+
 	"github.com/Shopify/sarama"
 	"github.com/linkedin/goavro/v2"
-	"testing"
+	"github.com/riferrei/srclient"
 )
 
 var testData = `{"val":1}`
@@ -26,7 +28,7 @@ func getTestAvroMsg(t *testing.T, codec *goavro.Codec) []byte {
 
 func TestAvroConsumer_ProcessAvroMsg(t *testing.T) {
 	schemaRegistryTestObject := createSchemaRegistryTestObject(t, "test", 1)
-	schemaRegistryMock := NewCachedSchemaRegistryClient([]string{schemaRegistryTestObject.MockServer.URL})
+	schemaRegistryMock := srclient.CreateSchemaRegistryClient(schemaRegistryTestObject.MockServer.URL)
 	callbacks := &ConsumerCallbacks{}
 	avroConsumer := &avroConsumer{nil, schemaRegistryMock, *callbacks}
 	consumerMsg := &sarama.ConsumerMessage{
